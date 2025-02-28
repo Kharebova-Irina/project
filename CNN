@@ -1,0 +1,185 @@
+# Импорт необходимых библиотек
+
+from tensorflow import keras
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# Подключение к дисковому пространству на гугл диске
+
+from google.colab import drive
+
+drive.mount('/content/drive')
+
+# Распаковка zip-файла "МОЙ_ДАТАСЕТ.zip" в каталог /content/Untitled_Folder
+
+!unzip -qo "МОЙ_ДАТАСЕТ.zip" -d /content/Untitled_Folder
+
+import numpy as np
+
+from PIL import Image
+
+# Формирование пути к каталогу
+
+IMAGE_PATH='/content/Untitled_Folder/МОЙ_ДАТАСЕТ'
+
+import os
+
+# Вывод содержимого каталога
+
+CLASS_PEOPLE=os.listdir(IMAGE_PATH)
+CLASS_COUNT=len(CLASS_PEOPLE)
+
+print(f'В директории PEOPLE {CLASS_COUNT} класса: {CLASS_PEOPLE}')
+print(f'Длина массива: {CLASS_COUNT}')
+
+data_files = []                           # Cписок путей к файлам картинок
+data_labels = []                          # Список меток классов, соответствующих файлам
+
+for class_label in range(CLASS_COUNT):    # Для всех классов по порядку номеров (их меток)
+    class_name = CLASS_PEOPLE[class_label]  # Выборка имени класса из списка имен
+    class_path = IMAGE_PATH + '/' + class_name  # Формирование полного пути к папке с изображениями класса
+    class_files = os.listdir(class_path)  # Получение списка имен файлов с изображениями текущего класса
+    print(f'Размер класса {class_name} составляет {len(class_files)} человек')
+
+    # Добавление к общему списку всех файлов класса с добавлением родительского пути
+    data_files += [f'{class_path}/{file_name}' for file_name in class_files]
+
+    # Добавление к общему списку меток текущего класса - их ровно столько, сколько файлов в классе
+    data_labels += [class_label] * len(class_files)
+
+print('Общий размер базы для обучения:', len(data_labels))
+
+import numpy as np                        # Библиотека работы с массивами
+
+data_images = []                          # Пустой список для данных изображений
+
+for file_name in data_files:
+    # Открытие и смена размера изображения
+    img = Image.open(file_name).resize((200, 200))
+    img_np = np.array(img)                # Перевод в numpy-массив
+    data_images.append(img_np)            # Добавление изображения в виде numpy-массива к общему списку
+    print(img_np.shape, " ", file_name)
+
+
+x_data = np.array(data_images)            # Перевод общего списка изображений в numpy-массив
+y_data = np.array(data_labels)            # Перевод общего списка меток класса в numpy-массив
+
+print(f'В массив собрано {len(data_images)} фотографий следующей формы: {img_np.shape}')
+print(f'Общий массив данных изображений следующей формы: {x_data.shape}')
+print(f'Общий массив меток классов следующей формы: {y_data.shape}')
+
+# Создание генератора обучения, подготовка и аугментация изображений
+
+train_datagen = ImageDataGenerator(
+       rescale=1./255,
+       rotation_range=20,
+       width_shift_range=0.2,
+       height_shift_range=0.2,
+       shear_range=0.2,
+       zoom_range=0.2,
+       horizontal_flip=True,
+       fill_mode='nearest'
+)
+
+validation_datagen = ImageDataGenerator(rescale=1./255)
+
+train_generator = train_datagen.flow_from_directory(
+    '/content/Untitled_Folder/МОЙ_ДАТАСЕТ',
+    target_size=(200, 200),
+    batch_size=32,
+    class_mode='categorical'
+)
+
+validation_generator = validation_datagen.flow_from_directory(
+    '/content/Untitled_Folder/МОЙ_ДАТАСЕТ',
+    target_size=(200, 200),
+    batch_size=32,
+    class_mode='categorical'
+)
+
+# Реализация свёрточной нейронной сети через Conv2D (выполняет операцию свёртки), MaxPooling2D (извлечение важной информации)
+
+model=Sequential()
+model.add(Conv2D(32, (2, 2), activation='relu', padding='same', input_shape=(200, 200, 3)))
+model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(64, (2, 2), activation='relu', padding='same'))
+model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(128, (2, 2), activation='relu', padding='same'))
+model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(256, (2, 2), activation='relu', padding='same'))
+model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(512, (2, 2), activation='relu', padding='same'))
+model.add(MaxPooling2D((2, 2)))
+
+#  Преобразование массивов в одномерный массив через Flatten
+
+model.add(Flatten())
+model.add(Dense(units=128, activation='relu'))
+model.add(Dense(units=CLASS_COUNT, activation='softmax'))
+
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Вывод архитектуры модели
+
+model.summary()
+
+# Обучение нейросети
+
+history = model.fit(
+       train_generator,
+       steps_per_epoch=train_generator.samples // train_generator.batch_size,
+       validation_data=validation_generator,
+       validation_steps=validation_generator.samples // validation_generator.batch_size,
+       epochs=20
+)
+
+# Оценка производительности обученной модели на предоставленных данных
+
+loss, accuracy = model.evaluate(validation_generator)
+
+# Графический вывод accuracy и loss
+
+import matplotlib.pyplot as plt
+
+plt.plot(history.history['accuracy'], label='accuracy', color='b')
+plt.plot(history.history['loss'], label='loss', color='g')
+plt.legend()
+plt.show()
+
+# Загрузка тестовых данных
+
+from google.colab import files
+
+uploaded=files.upload()
+
+from io import BytesIO
+
+# Загрузка изображений
+
+img = Image.open(BytesIO(uploaded['2148f2ad98d6d35f6b6f19414ed1352c.jpeg']))
+
+# Визуализация изображения img
+
+plt.imshow(img)
+
+# Преобразование img в numpy-массив и изменение его размера
+
+img=np.array(img)
+
+print(img.shape)
+img.resize((200, 200, 3))
+
+# Генерация прогнозов с помощью функции predict
+
+prediction_2=model.predict(np.array([img]))
+
+print(prediction_2)
+
+# Вывод результата
+
+if prediction_2[0][0]>prediction_2[0][1]:
+    print('Женщина')
+elif prediction_2[0][1]>prediction_2[0][0]:
+    print('Мужчина')
