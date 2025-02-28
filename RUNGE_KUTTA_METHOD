@@ -1,0 +1,54 @@
+import numpy as np
+import sympy as sm
+
+def f(x, y):
+    return 5 - y
+
+def Runge_Kutta(x0, y0, f, h, n, a, b):
+    y = np.zeros(n)
+    y[0] = y0
+    x = np.linspace(a, b, n)
+    h = x[1] - x[0]
+    for i in range(n - 1):
+        k1=f(x[i], y[i])
+        k2=f(x[i] + h/2, y[i] + h/2 * k1)
+        k3=f(x[i] + h/2, y[i] + h/2 * k2)
+        k4=f(x[i] + h, y[i] + h * k3)
+        y[i+1]=y[i] + h/6*(k1 + 2 * k2 + 2 * k3 + k4)
+    return x, y
+
+
+a, b = 0, 10
+
+x0=0
+y0=0
+n=100
+h=(b - a)/n
+
+x, y = Runge_Kutta(x0, y0, f, h, n, a, b)
+
+def Euler_method(x0, y0, f, h, n, a, b):
+    x=np.linspace(a, b, n)
+    y=np.zeros(n)
+    y[0]=y0
+    for i in range(n-1):
+        y[i+1] = y[i] + h * f(x[i], y[i])
+
+    return x, y
+
+x1, y1 = Euler_method(x0, y0, f, h, n, a, b)
+
+C = 0
+
+def Exact_solution(x, y):
+    return 5 - 3 * np.exp(-x)
+
+y2 = Exact_solution(x, y)
+
+import matplotlib.pyplot as plt
+
+plt.plot(x, y, label='Метод Рунге-Кутта', color='b')
+plt.plot(x, y1, label='Метод Эйлера', color='g')
+plt.plot(x, y2, label='Точное решение', color='r')
+plt.legend()
+plt.show()
