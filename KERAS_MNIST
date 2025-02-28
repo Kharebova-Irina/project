@@ -1,0 +1,53 @@
+from tensorflow import keras
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras import utils
+from tensorflow.keras.datasets import mnist
+
+
+(x_train, y_train),(x_test, y_test) = mnist.load_data()
+
+callbacks_list=[(tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=2, restore_best_weights=True)),
+                (tf.keras.callbacks.ModelCheckpoint(monitor='val_accuracy', save_best_only=True, filepath='best_model.h5'))]
+
+f1=plt.figure()
+f2=plt.figure()
+
+img=x_train[0]
+ax1=f1.add_subplot(221)
+ax1.imshow(img)
+
+def return_model():
+    model=Sequential()
+    model.add(Dense(units=100, activation='relu', input_dim=784))
+    model.add(Dense(units=64, activation='relu'))
+    model.add(Dense(units=128, activation='relu'))
+    model.add(Dense(units=10, activation='softmax'))
+    return model
+
+x_train=x_train.reshape((60000, 784))
+print(x_test.shape)
+x_test=x_test.reshape((10000, 784))
+print(x_train.shape)
+
+model=return_model()
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+history_train_loss=model.fit(x_train, y_train, epochs=20, batch_size=128, callbacks=callbacks_list)
+history_test_loss=model.fit(x_test, y_test, epochs=20, batch_size=128, callbacks=callbacks_list)
+
+
+epochs=range(1, 21)
+accuracy=history_train_loss.history['accuracy']
+accuracy_test=history_test_loss.history['accuracy']
+plt.plot(epochs, accuracy, color='b', label='Точность на обучающих данных')
+plt.plot(epochs, accuracy_test, color='g', label='Точность на тестовых данных')
+plt.legend()
+plt.show()
+
+img=np.array([x_train[0]])
+img.reshape((1, 784, 1))
+prediction=model.predict(img)
+print(np.argmax(prediction))
