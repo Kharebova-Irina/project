@@ -1,0 +1,38 @@
+from io import BytesIO
+from PIL import Image
+from google.colab import files
+
+from tensorflow import keras
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras import utils
+from tensorflow.keras.datasets import mnist
+
+conv_model=tf.keras.applications.VGG16()
+
+uploaded=files.upload()
+
+img=Image.open(BytesIO(uploaded['mac.png']))
+plt.imshow(img)
+
+img=img.resize((224, 224))
+
+import numpy as np
+
+conv_model=tf.keras.applications.VGG16()
+
+img=np.array([img])
+print(img.shape)
+x = keras.applications.vgg16.preprocess_input(img)
+print(x.shape)
+x = x.reshape((1, 224, 224, 3))
+prediction=conv_model.predict(x)
+#print(np.argmax(prediction))
+#print(prediction)
+
+print(np.argmax(prediction))
+
+print(conv_model.summary())
