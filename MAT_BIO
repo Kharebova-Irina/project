@@ -1,0 +1,57 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+r = 0.1
+K = 1000
+N0 = 10
+h = 0.01
+t_max = 200
+
+
+N = N0
+t = 0
+times = [t]
+populations = [N]
+
+def Runge_Kutta(r, K, N0, h, t_max, t, N):
+    while t < t_max:
+        k1 = h * r * N * (1 - N / K)
+        k2 = h * r * (N + k1 / 2) * (1 - (N + k1 / 2) / K)
+        k3 = h * r * (N + k2 / 2) * (1 - (N + k2 / 2) / K)
+        k4 = h * r * (N + k3) * (1 - (N + k3) / K)
+        N += (k1 + 2*k2 + 2*k3 + k4) / 6
+        t += h
+        times.append(t)
+        populations.append(N)
+
+    return times, populations
+
+r = 0.1
+K = 1000
+t_max = 200
+h = 0.01
+t = 0
+s = 10
+times_1 = [t]
+populations_1 = [s]
+
+C1 = (K - s) / s
+
+def Analitical_solution(r, K, h, t_max, t, C1, s):
+    while t < t_max:
+        s = K / (1 + C1*np.exp(- r * t))
+        t += h
+        times_1.append(t)
+        populations_1.append(s)
+    return times_1, populations_1
+
+x0, y0 = Runge_Kutta(r, K, N0, h, t_max, t, N)
+x1, y1 = Analitical_solution(r, K, h, t_max, t, C1, s)
+plt.plot(x0, y0, label = 'Метод Рунге-Кутта', color = 'g')
+plt.plot(x1, y1, label = 'Аналитическое решение', color = 'b')
+plt.xlabel('Время')
+plt.ylabel('Численность N')
+plt.title('Рост популяции')
+plt.grid()
+plt.show()
